@@ -4,6 +4,9 @@
 class IntVector
 {
 public:
+    IntVector();
+    IntVector(int x, int y, int z);
+
     int x, y, z;
 };
 

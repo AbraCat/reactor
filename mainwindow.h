@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "planeitem.h"
+
 #include <QMainWindow>
 #include <QGraphicsScene>
 
@@ -21,5 +23,7 @@ public:
 private:
     Ui::MainWindow *ui;
     QGraphicsScene* scene;
+
+    PlaneItem *energyGraph, *countGraph;
 };
 #endif // MAINWINDOW_H

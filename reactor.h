@@ -35,7 +35,7 @@ public:
     Molecule(int mass, int r, Vector v, Vector pos, MolType type);
     virtual ~Molecule() = default;
 
-    virtual void collide(std::vector<Molecule*>& mols, Molecule* other) = 0;
+    virtual void collide(std::vector<Molecule*>& mols, Vector collidePos, Molecule* other) = 0;
     virtual void draw(QPainter* painter) = 0;
 };
 
@@ -44,7 +44,7 @@ class RoundMol : public Molecule
 public:
     RoundMol(int mass, int r, Vector v, Vector pos);
 
-    virtual void collide(std::vector<Molecule*>& mols, Molecule* other);
+    virtual void collide(std::vector<Molecule*>& mols, Vector collidePos, Molecule* other);
     virtual void draw(QPainter* painter);
 };
 
@@ -53,7 +53,7 @@ class SquareMol : public Molecule
 public:
     SquareMol(int mass, int r, Vector v, Vector pos);
 
-    virtual void collide(std::vector<Molecule*>& mols, Molecule* other);
+    virtual void collide(std::vector<Molecule*>& mols, Vector collidePos, Molecule* other);
     virtual void draw(QPainter* painter);
 };
 

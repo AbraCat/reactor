@@ -6,8 +6,15 @@
 Vector fixedToFree(FixedVector v) { return v.p2 - v.p1; }
 FixedVector freeToFixed(Vector v, Vector start) { return {start, start + v}; }
 
-Vector::Vector() {};
+IntVector::IntVector() { this->x = this->y = this->z = 0; };
+IntVector::IntVector(int x, int y, int z)
+{
+    this->x = x;
+    this->y = y;
+    this->z = z;
+}
 
+Vector::Vector() { this->x = this->y = this->z = 0; };
 Vector::Vector(double x, double y, double z)
 {
     this->x = x;

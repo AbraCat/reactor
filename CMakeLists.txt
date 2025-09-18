@@ -13,6 +13,7 @@ qt_add_executable(reactor
     mainwindow.ui
     reactor.h reactor.cpp
     myvector.h myvector.cpp
+    planeitem.h planeitem.cpp
 )
 
 target_link_libraries(reactor
