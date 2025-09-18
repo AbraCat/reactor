@@ -3,6 +3,8 @@
 #include <QPainter>
 #include <QTimer>
 
+const double Pi = 3.1415926;
+
 void printMols(std::vector<Molecule*> mols)
 {
     printf("mols dump:\n");
@@ -14,7 +16,7 @@ void printMols(std::vector<Molecule*> mols)
     printf("mols dump end\n");
 }
 
-Molecule::Molecule(double mass, double r, Vector v, Vector pos, MolType type)
+Molecule::Molecule(int mass, int r, Vector v, Vector pos, MolType type)
 {
     this->valid = 1;
 
@@ -25,8 +27,8 @@ Molecule::Molecule(double mass, double r, Vector v, Vector pos, MolType type)
     this->type = type;
 }
 
-RoundMol::RoundMol(double mass, double r, Vector v, Vector pos) : Molecule(mass, r, v, pos, MOL_ROUND) {};
-SquareMol::SquareMol(double mass, double r, Vector v, Vector pos) : Molecule(mass, r, v, pos, MOL_SQUARE) {};
+RoundMol::RoundMol(int mass, int r, Vector v, Vector pos) : Molecule(mass, r, v, pos, MOL_ROUND) {};
+SquareMol::SquareMol(int mass, int r, Vector v, Vector pos) : Molecule(mass, r, v, pos, MOL_SQUARE) {};
 
 void RoundMol::collide(std::vector<Molecule*>& mols, Molecule* other)
 {
@@ -58,7 +60,24 @@ void SquareMol::collide(std::vector<Molecule*>& mols, Molecule* other)
         }
         case MOL_SQUARE:
         {
-            //
+            const double explodeDT = 0.1;
+            // n = (m1+m2)/m0
+            // m1*v1+m2*v1=n*m0*v
+            // v = (m1v1+m2v2)/(n*m0) = (m1v1+m2v2)/(m1+m2)
+
+            int n = this->mass + other->mass;
+            std::vector<Molecule*> newMols(n);
+            double angle0 = (rand() % 100) / (100.0 / (2 * Pi));
+            double vMod = (rand() % 100) / 20.0 + 5.0;
+            Vector vImpulse = (this->v * this->mass + other->v * other->mass) / n;
+
+            for (int i = 0; i < n; ++i)
+            {
+                double angle = angle0 + i * (2 * Pi / n);
+                Vector newV = Vector(vMod * std::cos(angle), vMod * std::sin(angle), 0) + vImpulse;
+                mols.push_back(new RoundMol(1, 5, newV, this->pos + newV * explodeDT));
+            }
+
             break;
         }
     }
@@ -83,12 +102,15 @@ Reactor::Reactor()
     dt = 1;
 
     mols = std::vector<Molecule*>();
-    mols.reserve(100);
+    mols.reserve(1000);
 
     // mols.push_back(new RoundMol(1, 5, {5, 0, 0}, {0, 0, 0}));
-    // mols.push_back(new RoundMol(1, 5, {-5, 0, 0}, {12, 0, 0}));
+    // mols.push_back(new RoundMol(10, 5, {-5, 0, 0}, {100, 0, 0}));
 
-    for (int i = 0; i < 30; ++i)
+    // mols.push_back(new SquareMol(1, 5, {5, 0, 0}, {0, 0, 0}));
+    // mols.push_back(new SquareMol(3, 5, {-5, 0, 0}, {100, 0, 0}));
+
+    for (int i = 0; i < 100; ++i)
     {
         Molecule *mol = nullptr;
         if (rand() % 2) mol = new RoundMol(rand() % 5, 5, {double(rand() % 10 - 5), double(rand() % 10 - 5), 0},
@@ -100,7 +122,7 @@ Reactor::Reactor()
     }
 
     timer = new QTimer();
-    timer->setInterval(1000.0 / 20);
+    timer->setInterval(1000.0 / 10);
     QObject::connect(timer, &QTimer::timeout, this, &Reactor::advance);
     timer->start();
 
@@ -136,22 +158,22 @@ void Reactor::advance()
         Molecule* mol = *molIter;
         if (mol->valid == 0) continue;
 
-        if (mol->pos.x > width)
+        if (mol->pos.x > width && mol->v.x > 0)
         {
             mol->v.x *= -1;
             break;
         }
-        if (mol->pos.x < -width)
+        if (mol->pos.x < -width && mol->v.x < 0)
         {
             mol->v.x *= -1;
             break;
         }
-        if (mol->pos.y > height)
+        if (mol->pos.y > height && mol->v.y > 0)
         {
             mol->v.y *= -1;
             break;
         }
-        if (mol->pos.y < -height)
+        if (mol->pos.y < -height && mol->v.y < 0)
         {
             mol->v.y *= -1;
             break;

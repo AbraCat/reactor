@@ -22,10 +22,10 @@ class Molecule
 public:
     bool valid;
     MolType type;
-    double mass, r;
+    int mass, r;
     Vector v, pos;
 
-    Molecule(double mass, double r, Vector v, Vector pos, MolType type);
+    Molecule(int mass, int r, Vector v, Vector pos, MolType type);
     virtual ~Molecule() = default;
 
     virtual void collide(std::vector<Molecule*>& mols, Molecule* other) = 0;
@@ -35,7 +35,7 @@ public:
 class RoundMol : public Molecule
 {
 public:
-    RoundMol(double mass, double r, Vector v, Vector pos);
+    RoundMol(int mass, int r, Vector v, Vector pos);
 
     virtual void collide(std::vector<Molecule*>& mols, Molecule* other);
     virtual void draw(QPainter* painter);
@@ -44,7 +44,7 @@ public:
 class SquareMol : public Molecule
 {
 public:
-    SquareMol(double mass, double r, Vector v, Vector pos);
+    SquareMol(int mass, int r, Vector v, Vector pos);
 
     virtual void collide(std::vector<Molecule*>& mols, Molecule* other);
     virtual void draw(QPainter* painter);
