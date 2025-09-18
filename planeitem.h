@@ -9,7 +9,7 @@ class PlaneItem : public QGraphicsObject
 {
     Q_OBJECT
 public:
-    PlaneItem(int nGraphs, std::vector<QColor> colors, int yScale, IntVector TL, IntVector BR);
+    PlaneItem(int nGraphs, std::vector<QColor> colors, double yScale, double cutStepY, IntVector TL, IntVector BR);
     QRectF boundingRect() const override;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
 
@@ -23,7 +23,8 @@ public slots:
 
 private:
     IntVector lftUp, rgtDown, centre;
-    int xScale, yScale, width, height;
+    int width, height;
+    double xScale, yScale, cutStepX, cutStepY;
 
     int nGraphs, nPoints;
     std::vector<std::vector<double>> points;

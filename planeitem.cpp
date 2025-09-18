@@ -2,26 +2,28 @@
 
 #include <QPainter>
 
-const int axisWidth = 3, cutsWidth = 1, borderWidth = 1, cutsLength = 5, pointSize = 3, vectorWidth = 3;
-const double graphStep = 0.2, arrowCoeff = 0.1;
+const int axisWidth = 3, cutsWidth = 1, borderWidth = 1, cutsLength = 5, pointSize = 3;
 
 const int stdScale = 10;
 
-PlaneItem::PlaneItem(int nGraphs, std::vector<QColor> colors, int yScale, IntVector TL, IntVector BR)
+PlaneItem::PlaneItem(int nGraphs, std::vector<QColor> colors, double yScale, double cutStepY, IntVector TL, IntVector BR)
 {
     this->lftUp = TL;
     this->rgtDown = BR;
     this->width = BR.x - TL.x;
     this->height = TL.y - BR.y;
     this->centre = IntVector(-0.4 * width, -0.4 * height, 0);
+    this->setPos((TL.x + BR.x) / 2, -(TL.y + BR.y) / 2);
 
     this->nGraphs = nGraphs;
-    this->nPoints = 10;
+    this->nPoints = 100;
     this->colors = colors;
     this->points = std::vector<std::vector<double>>(nGraphs, std::vector<double>(nPoints, 0));
 
     this->xScale = width * 1.0 / (nPoints + 1);
     this->yScale = yScale;
+    this->cutStepX = 10;
+    this->cutStepY = cutStepY;
 }
 
 QRectF PlaneItem::boundingRect() const
@@ -42,12 +44,13 @@ void PlaneItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     painter->drawRect(-width / 2, -height / 2, width, height);
 
     painter->setPen(QPen(QBrush(Qt::black), cutsWidth));
-    double xFirstCut = std::ceil(objectToPlaneCoord(IntVector(-width / 2, 0, 0)).x);
-    for(int x = planeToObjectCoord({xFirstCut, 0, 0}).x; x < width / 2; x += xScale)
+    for (int x = centre.x; x < width / 2; x += xScale * cutStepX)
         painter->drawLine(x, -centre.y - cutsLength, x, -centre.y + cutsLength);
-
-    double yFirstCut = std::ceil(objectToPlaneCoord(IntVector(0, -height / 2, 0)).y);
-    for(int y = planeToObjectCoord({0, yFirstCut, 0}).y; y < height / 2; y += yScale)
+    for (int x = centre.x; x > -width / 2; x -= xScale * cutStepX)
+        painter->drawLine(x, -centre.y - cutsLength, x, -centre.y + cutsLength);
+    for (int y = centre.y; y < height / 2; y += yScale * cutStepY)
+        painter->drawLine(centre.x - cutsLength, -y, centre.x + cutsLength, -y);
+    for (int y = centre.y; y > -height / 2; y -= yScale * cutStepY)
         painter->drawLine(centre.x - cutsLength, -y, centre.x + cutsLength, -y);
 
     for (int nGraph = 0; nGraph < nGraphs; ++nGraph)
@@ -87,6 +90,8 @@ Vector PlaneItem::objectToPlaneCoord(IntVector coord)
 
 void PlaneItem::addPoint(std::vector<double> point)
 {
+    printf("point %lf\n", point[0]);
+
     for (int nGraph = 0; nGraph < nGraphs; ++nGraph)
     {
         points[nGraph].push_back(point[nGraph]);

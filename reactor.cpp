@@ -124,20 +124,14 @@ void SquareMol::draw(QPainter* painter)
 
 Reactor::Reactor()
 {
-    width = 200;
-    height = 200;
+    width = 350;
+    height = 350;
     dt = 1;
 
     mols = std::vector<Molecule*>();
     mols.reserve(1000);
 
-    // mols.push_back(new RoundMol(1, 5, {5, 0, 0}, {0, 0, 0}));
-    // mols.push_back(new RoundMol(10, 5, {-5, 0, 0}, {12, 0, 0}));
-
-    // mols.push_back(new SquareMol(1, 5, {5, 0, 0}, {0, 0, 0}));
-    // mols.push_back(new SquareMol(3, 5, {-5, 0, 0}, {100, 0, 0}));
-
-    for (int i = 0; i < 200; ++i)
+    for (int i = 0; i < 300; ++i)
     {
         Molecule *mol = nullptr;
         if (rand() % 2) mol = new RoundMol(rand() % 5 + 1, 5, {double(rand() % 10 - 5), double(rand() % 10 - 5), 0},
@@ -149,7 +143,7 @@ Reactor::Reactor()
     }
 
     timer = new QTimer();
-    timer->setInterval(1000.0 / 10);
+    timer->setInterval(1000.0 / 20);
     QObject::connect(timer, &QTimer::timeout, this, &Reactor::advance);
     timer->start();
 
@@ -256,6 +250,8 @@ void Reactor::advance()
     }
 
     update();
+    emit energySig({energy()});
+    emit molCntSig(molCnt());
 }
 
 void Reactor::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
@@ -270,4 +266,24 @@ void Reactor::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
         Molecule* mol = *molIter;
         mol->draw(painter);
     }
+}
+
+double Reactor::energy()
+{
+    double ans = 0;
+    for (Molecule* mol: mols)
+        ans += mol->mass * std::pow(*(mol->v), 2) / 2;
+    return ans;
+}
+
+std::vector<double> Reactor::molCnt()
+{
+    int round = 0, square = 0;
+    for (Molecule* mol: mols)
+    {
+        if (mol->type == MOL_ROUND) ++round;
+        else ++square;
+    }
+
+    return {double(round), double(square)};
 }

@@ -16,25 +16,19 @@ MainWindow::MainWindow(QWidget *parent)
     view->setScene(scene);
     setCentralWidget(view);
 
-    // Reactor* reactor = new Reactor();
-    // scene->addItem(reactor);
+    Reactor* reactor = new Reactor();
+    scene->addItem(reactor);
 
-    countGraph = new PlaneItem(1, std::vector<QColor>{Qt::black}, 100, {-300, 300, 0}, {0, 0, 0});
+    energyGraph = new PlaneItem(1, {Qt::black}, 0.01, 1000, {360, 355, 0}, {360 + 350, 5, 0});
+    scene->addItem(energyGraph);
+
+    countGraph = new PlaneItem(2, {Qt::blue, Qt::red}, 0.5, 100, {360, -5, 0}, {360 + 350, -355, 0});
     scene->addItem(countGraph);
 
-    QTimer *timer = new QTimer();
-    timer->setInterval(1000 / 20);
+    QObject::connect(reactor, &Reactor::energySig, energyGraph, &PlaneItem::addPoint);
+    QObject::connect(reactor, &Reactor::molCntSig, countGraph, &PlaneItem::addPoint);
 
-    PlaneItem* g = countGraph;
-    double *cnt = new double;
-    *cnt = 0;
-    QObject::connect(timer, &QTimer::timeout, g, [g, cnt]{
-        g->addPoint({std::sin(*cnt)});
-            *cnt += 0.1;
-    });
-    timer->start();
-
-    // ui->statusbar->addWidget(reactor->d);
+    ui->statusbar->addWidget(reactor->d);
 }
 
 MainWindow::~MainWindow()

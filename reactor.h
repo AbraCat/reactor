@@ -68,6 +68,13 @@ public:
     QRectF boundingRect() const override;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
 
+    double energy();
+    std::vector<double> molCnt();
+
+signals:
+    void energySig(std::vector<double> enegry);
+    void molCntSig(std::vector<double> cnt);
+
 public slots:
     void advance();
 
