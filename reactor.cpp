@@ -10,15 +10,15 @@ void printMols(std::vector<Molecule*> mols)
     printf("mols dump:\n");
     for (Molecule* mol: mols)
     {
-        printf("pos: %.2lf %.2lf type: %d v: %.2lf %.2lf valid: %d\n",
-        mol->pos.x, mol->pos.y, mol->type, mol->v.x, mol->v.y, mol->valid);
+        printf("pos: %.2lf %.2lf type: %d v: %.2lf %.2lf status: %d\n",
+        mol->pos.x, mol->pos.y, mol->type, mol->v.x, mol->v.y, mol->status);
     }
     printf("mols dump end\n");
 }
 
 Molecule::Molecule(int mass, int r, Vector v, Vector pos, MolType type)
 {
-    this->valid = 1;
+    this->status = MOL_VALID;
 
     this->mass = mass;
     this->r = r;
@@ -92,7 +92,7 @@ void RoundMol::draw(QPainter* painter)
 void SquareMol::draw(QPainter* painter)
 {
     painter->setBrush(Qt::red);
-    painter->drawRect(pos.x - r, -(pos.y - r), r * 2, r * 2);
+    painter->drawRect(pos.x - r, -pos.y - r, r * 2, r * 2);
 }
 
 Reactor::Reactor()
@@ -104,7 +104,7 @@ Reactor::Reactor()
     mols = std::vector<Molecule*>();
     mols.reserve(1000);
 
-    // mols.push_back(new RoundMol(1, 5, {5, 0, 0}, {0, 0, 0}));
+    // mols.push_back(new RoundMol(1, 5, {10, 0, 0}, {0, 0, 0}));
     // mols.push_back(new RoundMol(10, 5, {-5, 0, 0}, {100, 0, 0}));
 
     // mols.push_back(new SquareMol(1, 5, {5, 0, 0}, {0, 0, 0}));
@@ -141,7 +141,7 @@ Reactor::~Reactor()
 
 QRectF Reactor::boundingRect() const
 {
-    return QRectF(-width - 1, -height - 1, 2 * (width + 1), 2 * (height + 1));
+    return QRectF(-width - 100, -height - 100, 2 * (width + 100), 2 * (height + 100));
 }
 
 void Reactor::advance()
@@ -149,6 +149,7 @@ void Reactor::advance()
     for (std::vector<Molecule*>::iterator molIter = mols.begin(); molIter != mols.end(); molIter++)
     {
         Molecule* mol = *molIter;
+        if (mol->status != MOL_VALID) printf("Wrong molecule status\n");
         mol->pos += mol->v * dt;
     }
 
@@ -156,38 +157,26 @@ void Reactor::advance()
     for (std::vector<Molecule*>::iterator molIter = mols.begin(); molIter != molsEnd; molIter++)
     {
         Molecule* mol = *molIter;
-        if (mol->valid == 0) continue;
+        if (mol->status != MOL_VALID) continue;
 
         if (mol->pos.x > width && mol->v.x > 0)
-        {
             mol->v.x *= -1;
-            break;
-        }
-        if (mol->pos.x < -width && mol->v.x < 0)
-        {
+        else if (mol->pos.x < -width && mol->v.x < 0)
             mol->v.x *= -1;
-            break;
-        }
-        if (mol->pos.y > height && mol->v.y > 0)
-        {
+        else if (mol->pos.y > height && mol->v.y > 0)
             mol->v.y *= -1;
-            break;
-        }
-        if (mol->pos.y < -height && mol->v.y < 0)
-        {
+        else if (mol->pos.y < -height && mol->v.y < 0)
             mol->v.y *= -1;
-            break;
-        }
 
         for (std::vector<Molecule*>::iterator molIter2 = mols.begin(); molIter2 != molsEnd; molIter2++)
         {
             if (molIter == molIter2) continue;
             Molecule* mol2 = *molIter2;
-            if (mol2->valid == 0) continue;
+            if (mol2->status != MOL_VALID) continue;
 
             if (*(mol->pos - mol2->pos) < mol->r + mol2->r)
             {
-                mol->valid = mol2->valid = 0;
+                mol->status = mol2->status = MOL_INVALID;
                 mol->collide(mols, mol2);
                 break;
             }
@@ -196,7 +185,7 @@ void Reactor::advance()
 
     for (std::vector<Molecule*>::iterator molIter = mols.begin(); molIter != mols.end(); molIter++)
     {
-        if ((*molIter)->valid == 0)
+        if ((*molIter)->status == MOL_INVALID)
         {
             delete *molIter;
             mols.erase(molIter);

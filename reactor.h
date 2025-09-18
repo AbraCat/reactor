@@ -12,6 +12,13 @@ enum MolType
     MOL_SQUARE
 };
 
+enum MolStatus
+{
+    MOL_VALID,
+    MOL_INVALID,
+    MOL_WALL_BOUNCE
+};
+
 class Molecule;
 class RoundMol;
 class SquareMol;
@@ -20,7 +27,7 @@ class Reactor;
 class Molecule
 {
 public:
-    bool valid;
+    MolStatus status;
     MolType type;
     int mass, r;
     Vector v, pos;
