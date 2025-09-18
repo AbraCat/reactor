@@ -5,9 +5,9 @@
 #include <QGraphicsView>
 #include <QTimer>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+const int edge = 250;
+
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 
@@ -16,13 +16,12 @@ MainWindow::MainWindow(QWidget *parent)
     view->setScene(scene);
     setCentralWidget(view);
 
-    Reactor* reactor = new Reactor();
+    Reactor* reactor = new Reactor(edge);
     scene->addItem(reactor);
 
-    energyGraph = new PlaneItem(1, {Qt::black}, 0.01, 1000, {360, 355, 0}, {360 + 350, 5, 0});
+    energyGraph = new PlaneItem(1, {Qt::black}, 0.1, 100, {edge + 5, edge, 0}, {2 * edge + 5, 5, 0});
+    countGraph = new PlaneItem(2, {Qt::blue, Qt::red}, 0.4, 100, {edge + 5, 0, 0}, {2 * edge + 5, -edge, 0});
     scene->addItem(energyGraph);
-
-    countGraph = new PlaneItem(2, {Qt::blue, Qt::red}, 0.5, 100, {360, -5, 0}, {360 + 350, -355, 0});
     scene->addItem(countGraph);
 
     QObject::connect(reactor, &Reactor::energySig, energyGraph, &PlaneItem::addPoint);

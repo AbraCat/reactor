@@ -11,6 +11,9 @@ class PlaneItem : public QGraphicsObject
 public:
     PlaneItem(int nGraphs, std::vector<QColor> colors, double yScale, double cutStepY, IntVector TL, IntVector BR);
     QRectF boundingRect() const override;
+
+    void drawCuts(QPainter *painter);
+    void drawGraphs(QPainter* painter);
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
 
     IntVector planeToObjectCoord(Vector coord);
