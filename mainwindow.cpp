@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     Reactor* reactor = new Reactor(edge);
     scene->addItem(reactor);
 
-    energyGraph = new PlaneItem(1, {Qt::black}, 0.1, 100, {edge + 5, edge, 0}, {2 * edge + 5, 5, 0});
+    energyGraph = new PlaneItem(1, {Qt::black}, 0.05, 200, {edge + 5, edge, 0}, {2 * edge + 5, 5, 0});
     countGraph = new PlaneItem(2, {Qt::blue, Qt::red}, 0.4, 100, {edge + 5, 0, 0}, {2 * edge + 5, -edge, 0});
     scene->addItem(energyGraph);
     scene->addItem(countGraph);

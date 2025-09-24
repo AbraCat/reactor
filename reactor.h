@@ -5,6 +5,8 @@
 
 #include <QGraphicsObject>
 #include <QLabel>
+#include <qwidget.h>
+#include <QGraphicsSceneMouseEvent>
 
 enum MolType
 {
@@ -57,6 +59,28 @@ public:
     virtual void draw(QPainter* painter);
 };
 
+class Button : public QObject
+{
+    Q_OBJECT
+public:
+    Button(int xl, int yt, int xr, int yb, Vector color);
+    virtual void action();
+    void unpress();
+
+    IntVector TL, BR;
+    Vector press_color, unpress_color;
+    bool is_pressed;
+signals:
+    void pressed();
+};
+
+// class MoveButton : public Button
+// {
+//     Q_OBJECT
+// public:
+//     virtual void action() override;
+// };
+
 class Reactor : public QGraphicsObject
 {
     Q_OBJECT;
@@ -67,11 +91,20 @@ public:
     QRectF boundingRect() const override;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr) override;
 
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
+
     double energy();
     std::vector<double> molCnt();
 
     void checkWallCollision(Molecule* mol);
     void checkMolCollision(Molecule* mol, Molecule* mol2);
+
+    void moveWall(int step);
+    void increaseTemp(double step);
+    void addRandomMols(int nMols);
+
+    void addButton(Vector color);
 
 signals:
     void energySig(std::vector<double> enegry);
@@ -81,9 +114,13 @@ public slots:
     void advance();
 
 private:
-    int width, height;
+    // int width, height;
+    IntVector TL, BR;
     std::vector<Molecule*> mols;
     QTimer* timer;
+
+    std::vector<Button*> buttons;
+    double lftTemp, rgtImpulse;
 
 public:
     QLabel* d;

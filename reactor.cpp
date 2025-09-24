@@ -5,8 +5,13 @@
 
 const double Pi = 3.1415926;
 
-const double dt = 1, explodeDT = 0.3, spawnV = 3;
-const int spawnM = 1, nSpawn = 1000, fps = 60;
+const double dt = 1, explodeDT = 0.3, unitRadius = 5, spawnV = 5;
+const int spawnM = 1, nSpawn = 100, fps = 60;
+
+const int buttonSize = 50, buttonGap = 10;
+const double unpressColorCoeff = 0.7;
+
+QColor squareCol = Qt::red;
 
 bool isZero(double a)
 {
@@ -46,7 +51,7 @@ Molecule::Molecule(int mass, Vector v, Vector pos, MolType type)
     this->status = MOL_VALID;
 
     this->mass = mass;
-    this->r = 3.0 * std::sqrt(mass);
+    this->r = unitRadius * std::sqrt(mass);
     this->v = v;
     this->pos = pos;
     this->type = type;
@@ -111,8 +116,9 @@ void RoundMol::draw(QPainter* painter)
 
 void SquareMol::draw(QPainter* painter)
 {
-    painter->setBrush(Qt::red);
-    painter->drawRect(pos.x - r, -pos.y - r, r * 2, r * 2);
+    painter->setBrush(squareCol);
+    // painter->drawRect(pos.x - r, -pos.y - r, r * 2, r * 2);
+    painter->drawEllipse(QPointF(pos.x, -pos.y), r, r);
 }
 
 Molecule* randMolecule(double spawnP)
@@ -124,9 +130,91 @@ Molecule* randMolecule(double spawnP)
     else return new SquareMol(randInt(1, spawnM), v, pos);
 }
 
+Button::Button(int xl, int yt, int xr, int yb, Vector color)
+{
+    this->TL = IntVector(xl, yt, 0);
+    this->BR = IntVector(xr, yb, 0);
+    this->press_color = color;
+    this->unpress_color = color * unpressColorCoeff;
+    this->is_pressed = 0;
+}
+
+void Button::action()
+{
+    is_pressed = 1;
+    emit pressed();
+}
+
+void Button::unpress()
+{
+    is_pressed = 0;
+}
+
+void Reactor::mousePressEvent(QGraphicsSceneMouseEvent* event)
+{
+    int xPos = event->pos().x(), yPos = -event->pos().y();
+    for (Button* button: buttons)
+    {
+        if (button->TL.x <= xPos && xPos <= button->BR.x && button->BR.y <= yPos && yPos <= button->TL.y)
+        {
+            button->action();
+            break;
+        }
+    }
+}
+
+void Reactor::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+{
+    for (Button* button: buttons)
+        button->unpress();
+}
+
+void Reactor::moveWall(int step)
+{
+    TL.x -= step;
+}
+
+void Reactor::increaseTemp(double step)
+{
+    lftTemp += step;
+}
+
+void Reactor::addRandomMols(int nMols)
+{
+    if (nMols >= 0)
+    {
+        while (nMols--)
+        {
+            mols.push_back(randMolecule(100));
+        }
+        return;
+    }
+
+    nMols *= -1;
+    while (nMols--)
+    {
+        int randIndex = rand() % mols.size();
+        mols[randIndex]->status = MOL_INVALID;
+    }
+}
+
+void Reactor::addButton(Vector color)
+{
+    int nButton = buttons.size();
+    buttons.push_back(new Button(TL.x + (buttonSize + buttonGap) * nButton, TL.y + buttonSize + 10,
+                                 TL.x + (buttonSize) * (nButton + 1) + buttonGap * nButton, TL.y + 10, color));
+}
+
 Reactor::Reactor(int width)
 {
-    this->width = this->height = width;
+    #define BUTTON_ACTION(function)\
+    QObject::connect(buttons[buttons.size() - 1], &Button::pressed, this, [this]{ function; });
+
+    setAcceptedMouseButtons(Qt::LeftButton);
+
+    // this->width = this->height = width;
+    this->TL = IntVector(-width, width, 0);
+    this->BR = IntVector(width, -width, 0);
 
     mols = std::vector<Molecule*>();
     mols.reserve(nSpawn * 3);
@@ -138,43 +226,66 @@ Reactor::Reactor(int width)
     QObject::connect(timer, &QTimer::timeout, this, &Reactor::advance);
     timer->start();
 
+    buttons = std::vector<Button*>();
+    addButton(Vector(0, 0, 1));
+    BUTTON_ACTION(moveWall(10))
+    addButton(Vector(0.6, 0, 1));
+    BUTTON_ACTION(moveWall(-10))
+
+    addButton(Vector(1, 0, 0));
+    BUTTON_ACTION(increaseTemp(1))
+    addButton(Vector(1, 0.6, 0));
+    BUTTON_ACTION(increaseTemp(-1))
+
+    addButton(Vector(0, 1, 0));
+    BUTTON_ACTION(addRandomMols(10))
+    addButton(Vector(0, 1, 1));
+    BUTTON_ACTION(addRandomMols(-10))
+
+    this->lftTemp = 1;
     d = new QLabel();
+    #undef BUTTON_ACTION
 }
 
 Reactor::~Reactor()
 {
     for (Molecule* mol: mols)
         delete mol;
+    for (Button* button: buttons)
+        delete button;
     delete timer;
 }
 
 QRectF Reactor::boundingRect() const
 {
-    return QRectF(-width - 5, -height - 5, 2 * (width + 5), 2 * (height + 5));
+    // return QRectF(-width - 5, -height * 2 - 5, 2 * (width + 5), 3 * (height + 5));
+    return QRect(TL.x - 5 - 300, -(TL.y + 5) - 100, BR.x - TL.x + 10 + 300, TL.y - BR.y + 10 + 100);
 }
 
 void Reactor::checkWallCollision(Molecule* mol)
 {
     Vector newPos = mol->pos + mol->v * dt;
 
-    if (newPos.x > width)
+    if (newPos.x > BR.x)
     {
-        mol->pos = Vector(2 * width - newPos.x, newPos.y, 0);
+        rgtImpulse += mol->mass * mol->v.x;
+        mol->pos = Vector(2 * BR.x - newPos.x, newPos.y, 0);
         mol->v.x *= -1;
     }
-    else if (newPos.x < -width)
+    else if (newPos.x < TL.x)
     {
-        mol->pos = Vector(-2 * width - newPos.x, newPos.y, 0);
+        mol->pos = Vector(2 * TL.x - newPos.x, newPos.y, 0);
         mol->v.x *= -1;
+        mol->v.x += lftTemp / mol->mass;
     }
-    else if (newPos.y > height)
+    else if (newPos.y > TL.y)
     {
-        mol->pos = Vector(newPos.x, 2 * height - newPos.y, 0);
+        mol->pos = Vector(newPos.x, 2 * TL.y - newPos.y, 0);
         mol->v.y *= -1;
     }
-    else if (newPos.y < -height)
+    else if (newPos.y < BR.y)
     {
-        mol->pos = Vector(newPos.x, -2 * height - newPos.y, 0);
+        mol->pos = Vector(newPos.x, 2 * BR.y - newPos.y, 0);
         mol->v.y *= -1;
     }
     else
@@ -257,13 +368,24 @@ void Reactor::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
 {
     painter->setPen(QPen(Qt::black, 3));
     painter->setBrush(Qt::transparent);
-    painter->drawRect(-width, -height, width * 2, height * 2);
+    painter->drawRect(TL.x, -TL.y, BR.x - TL.x, TL.y - BR.y);
     painter->setPen(QPen(Qt::transparent, 0));
 
     for (std::vector<Molecule*>::iterator molIter = mols.begin(); molIter != mols.end(); molIter++)
     {
         Molecule* mol = *molIter;
         mol->draw(painter);
+    }
+
+    for (Button* button: buttons)
+    {
+        Vector color;
+        if (button->is_pressed) color = button->press_color;
+        else color = button->unpress_color;
+        color *= 255;
+
+        painter->setBrush(QColor(color.x, color.y, color.z));
+        painter->drawRect(button->TL.x, -button->TL.y, button->BR.x - button->TL.x, button->TL.y - button->BR.y);
     }
 }
 
